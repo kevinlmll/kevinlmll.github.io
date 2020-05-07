@@ -6,22 +6,22 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="keyword"  content="">
-    <link rel="shortcut icon" href="/huxblog-boilerplate/img/favicon.ico">
+    <meta name="description" content="记录工作、学习中遇到的各种知识">
+    <meta name="keyword"  content="Golang, MySQL, redis, Linux, TCP/IP">
+    <link rel="shortcut icon" href="/img/favicon.ico">
 
-    <title>你的博客 | Your Blog</title>
+    <title>初除一夕的博客 | Kevinlmll Blog</title>
 
-    <link rel="canonical" href="http://localhost:4000/huxblog-boilerplate/">
+    <link rel="canonical" href="http://localhost:4000/">
 
     <!-- Bootstrap Core CSS -->
-    <link rel="stylesheet" href="/huxblog-boilerplate/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/huxblog-boilerplate/css/hux-blog.min.css">
+    <link rel="stylesheet" href="/css/hux-blog.min.css">
 
     <!-- Pygments Github CSS -->
-    <link rel="stylesheet" href="/huxblog-boilerplate/css/syntax.css">
+    <link rel="stylesheet" href="/css/syntax.css">
 
     <!-- Custom Fonts -->
     <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
@@ -62,7 +62,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/huxblog-boilerplate/">Your Blog</a>
+            <a class="navbar-brand" href="/">Kevinlmll Blog</a>
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -75,15 +75,15 @@
             <div class="navbar-collapse">
                 <ul class="nav navbar-nav navbar-right">
                     <li>
-                        <a href="/huxblog-boilerplate/">Home</a>
+                        <a href="/">Home</a>
                     </li>
                     
                     <li>
-                        <a href="/huxblog-boilerplate/about/">About</a>
+                        <a href="/about/">About</a>
                     </li>
                     
                     <li>
-                        <a href="/huxblog-boilerplate/tags/">Tags</a>
+                        <a href="/tags/">Tags</a>
                     </li>
                     
                 </ul>
@@ -124,14 +124,14 @@
 
 
     <!-- Page Header -->
-<header class="intro-header" style="background-image: url('/huxblog-boilerplate/img/home-bg.jpg')">
+<header class="intro-header" style="background-image: url('/img/home-bg.jpg')">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 ">
                 <div class="site-heading">
-                    <h1>Your Blog</h1>
+                    <h1>Kevinlmll Blog</h1>
                     <!--<hr class="small">-->
-                    <span class="subheading">Boilerplate of Hux Blog</span>
+                    <span class="subheading">「自己颠覆自己，比等着别人来做要好太多。」</span>
                 </div>
             </div>
         </div>
@@ -153,6 +153,30 @@
                 post-container
             ">
     			
+<div class="post-preview">
+    <a href="/2020/05/05/golang-source-code-analyze-of-syncmap/">
+        <h2 class="post-title">
+            Golang里map和Sync.Map的不同
+        </h2>
+        
+        <h3 class="post-subtitle">
+            "细品sync.Map源代码"
+        </h3>
+        
+        <div class="post-content-preview">
+            Golang里map和Sync.Map的不同
+
+使用Golang的同学都知道，golang提供了map和sync.Map两种字典数据结构。简单的从包名可以看出，sync.Map作为sync包里的一个数据类型，相对于内置的map数据结构，应该是支持同步语义，简化开发做同步化的编码过程。但是map+lock/mutex的方式也可以保证map里操作数据同步化，那么，这两者的差异在哪里呢？
+
+我们先...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by kevinlmll on May 5, 2020
+    </p>
+</div>
+<hr>
+
 
 <!-- Pager -->
 
@@ -170,28 +194,8 @@
                 
                 <section>
                     <hr class="hidden-sm hidden-xs">
-                    <h5><a href="/huxblog-boilerplate/tags/">FEATURED TAGS</a></h5>
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
                     <div class="tags">
-                        
-                            
-                        
-                            
-                        
-                            
-                        
-                            
-                        
-                            
-                                <a href="/huxblog-boilerplate/tags/#前端开发" title="前端开发" rel="3">
-                                    前端开发
-                                </a>
-                            
-                        
-                            
-                                <a href="/huxblog-boilerplate/tags/#JavaScript" title="JavaScript" rel="3">
-                                    JavaScript
-                                </a>
-                            
                         
                             
                         
@@ -201,13 +205,13 @@
 
                 <!-- Short About -->
                 <section class="visible-md visible-lg">
-                    <hr><h5><a href="/huxblog-boilerplate/about/">ABOUT ME</a></h5>
+                    <hr><h5><a href="/about/">ABOUT ME</a></h5>
                     <div class="short-about">
                         
-                            <img src="/img/avatar-hux.jpg" />
+                            <img src="/img/avatar-kevinlmll.jpg" />
                         
                         
-                            <p>写写代码，做做设计，看看产品。世界那么大，多玩玩看看。</p>
+                            <p>记录吾思吾想。</p>
                         
                         <!-- SNS Link -->
                         <ul class="list-inline">
@@ -215,7 +219,7 @@
                             
                             
                             <li>
-                                <a target="_blank" href="https://www.zhihu.com/people/huxpro">
+                                <a target="_blank" href="https://www.zhihu.com/people/xiao-hong-5">
                                     <span class="fa-stack fa-lg">
                                         <i class="fa fa-circle fa-stack-2x"></i>
                                         <i class="fa  fa-stack-1x fa-inverse">知</i>
@@ -225,7 +229,7 @@
                             
                             
                             <li>
-                                <a target="_blank" href="http://weibo.com/huxpro">
+                                <a target="_blank" href="http://weibo.com/heimao86">
                                     <span class="fa-stack fa-lg">
                                         <i class="fa fa-circle fa-stack-2x"></i>
                                         <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
@@ -234,18 +238,9 @@
                             </li>
                             
                             
-                            <li>
-                                <a target="_blank" href="https://www.facebook.com/huxpro">
-                                    <span class="fa-stack fa-lg">
-                                        <i class="fa fa-circle fa-stack-2x"></i>
-                                        <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
-                                    </span>
-                                </a>
-                            </li>
-                            
                             
                             <li>
-                                <a target="_blank" href="https://github.com/huxpro">
+                                <a target="_blank" href="https://github.com/kevinlmll">
                                     <span class="fa-stack fa-lg">
                                         <i class="fa fa-circle fa-stack-2x"></i>
                                         <i class="fa fa-github fa-stack-1x fa-inverse"></i>
@@ -292,7 +287,7 @@
                     <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
                     
                     <li>
-                        <a target="_blank" href="https://www.zhihu.com/people/huxpro">
+                        <a target="_blank" href="https://www.zhihu.com/people/xiao-hong-5">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa  fa-stack-1x fa-inverse">知</i>
@@ -302,7 +297,7 @@
                     
                     
                     <li>
-                        <a target="_blank" href="http://weibo.com/huxpro">
+                        <a target="_blank" href="http://weibo.com/heimao86">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
@@ -313,18 +308,9 @@
 
 
                     
-                    <li>
-                        <a target="_blank" href="https://www.facebook.com/huxpro">
-                            <span class="fa-stack fa-lg">
-                                <i class="fa fa-circle fa-stack-2x"></i>
-                                <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
-                            </span>
-                        </a>
-                    </li>
-                    
                     
                     <li>
-                        <a target="_blank" href="https://github.com/huxpro">
+                        <a target="_blank" href="https://github.com/kevinlmll">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-github fa-stack-1x fa-inverse"></i>
@@ -334,7 +320,7 @@
                     
                 </ul>
                 <p class="copyright text-muted">
-                    Copyright &copy; Your Blog 2020
+                    Copyright &copy; Kevinlmll Blog 2020
                     <br>
                     Theme by <a href="http://huangxuan.me">Hux</a> |
                     <iframe
@@ -349,13 +335,13 @@
 </footer>
 
 <!-- jQuery -->
-<script src="/huxblog-boilerplate/js/jquery.min.js "></script>
+<script src="/js/jquery.min.js "></script>
 
 <!-- Bootstrap Core JavaScript -->
-<script src="/huxblog-boilerplate/js/bootstrap.min.js "></script>
+<script src="/js/bootstrap.min.js "></script>
 
 <!-- Custom Theme JavaScript -->
-<script src="/huxblog-boilerplate/js/hux-blog.min.js "></script>
+<script src="/js/hux-blog.min.js "></script>
 
 
 <!-- async load function -->
@@ -414,38 +400,9 @@
 
 <!-- Google Analytics -->
 
-<script>
-    // dynamic User by Hux
-    var _gaId = 'UA-49627206-1';
-    var _gaDomain = 'huangxuan.me';
-
-    // Originial
-    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-    ga('create', _gaId, _gaDomain);
-    ga('send', 'pageview');
-</script>
-
 
 
 <!-- Baidu Tongji -->
-
-<script>
-    // dynamic User by Hux
-    var _baId = '4cc1f2d8f3067386cc5cdb626a202900';
-
-    // Originial
-    var _hmt = _hmt || [];
-    (function() {
-      var hm = document.createElement("script");
-      hm.src = "//hm.baidu.com/hm.js?" + _baId;
-      var s = document.getElementsByTagName("script")[0];
-      s.parentNode.insertBefore(hm, s);
-    })();
-</script>
 
 
 

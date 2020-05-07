@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="记录工作、学习中遇到的各种知识">
+    <meta name="keyword"  content="Golang, MySQL, redis, Linux, TCP/IP">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>Golang里map和Sync.Map的不同 - 初除一夕的博客 | Kevinlmll Blog</title>
+
+    <link rel="canonical" href="http://localhost:4000/2020/05/05/golang-source-code-analyze-of-syncmap/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="http://cdn.staticfile.org/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Kevinlmll Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/post-bg-2015.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        background-image: url('/img/post-bg-2015.jpg')
+    }
+</style>
+<header class="intro-header" >
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#golang" title="golang">golang</a>
+                        
+                    </div>
+                    <h1>Golang里map和Sync.Map的不同</h1>
+                    
+                    
+                    <h2 class="subheading">"细品sync.Map源代码"</h2>
+                    
+                    <span class="meta">Posted by kevinlmll on May 5, 2020</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<h3 id="golang里map和syncmap的不同">Golang里map和Sync.Map的不同</h3>
+
+<p>使用Golang的同学都知道，golang提供了map和sync.Map两种字典数据结构。简单的从包名可以看出，sync.Map作为sync包里的一个数据类型，相对于内置的map数据结构，应该是支持同步语义，简化开发做同步化的编码过程。但是map+lock/mutex的方式也可以保证map里操作数据同步化，那么，这两者的差异在哪里呢？</p>
+
+<p>我们先看一下sync.Map包的文档说明:</p>
+<blockquote>
+  <p>Map is like a Go map[interface{}]interface{} but is safe for concurrent use by multiple goroutines without additional locking or coordination. Loads, stores, and deletes run in amortized constant time.</p>
+</blockquote>
+
+<p><em>sync.Map是一种类型Go map[interface{}]interface{}的数据结构，但是它在多协程并发使用上更加安全，并且不需要额外的锁和条件变量。它在读、写、删除的操作平均耗时是常量时间。</em></p>
+
+<blockquote>
+  <p>The Map type is specialized. Most code should use a plain Go map instead, with separate locking or coordination, for better type safety and to make it easier to maintain other invariants along with the map content.</p>
+</blockquote>
+
+<p><em>sync.Map这个数据结构是特制的。为了更好的类型安全，map里不变量的更易维护性，建议是使用原始的Go map加独立锁/条件变量的方式来开发</em></p>
+
+<blockquote>
+  <p>The Map type is optimized for two common use cases: (1) when the entry for a given key is only ever written once but read many times, as in caches that only grow, or (2) when multiple goroutines read, write, and overwrite entries for disjoint sets of keys. In these two cases, use of a Map may significantly reduce lock contention compared to a Go map paired with a separate Mutex or RWMutex.</p>
+</blockquote>
+
+<p><em>sync.Map数据结构专门为以下两种场景下进行优化：（1）对于一些Key,关联的内容实体是只写一次，但有大量的读，类似，使用缓存时只有Key增长，或者（2）多个并发协议读、写、修改的Keys集合是不相交的。基于以上的两个场景，对比Go map+独立Mutex/RWMutex方案，使用sync.Map可以极大的减少争夺锁的消耗</em></p>
+
+<blockquote>
+  <p>The zero Map is empty and ready for use. A Map must not be copied after first use.`</p>
+</blockquote>
+
+<p><em>初始化后的sync.Map是空的，可以直接使用。当sync.Map被使用后，<strong>一定</strong>不能进行复制</em></p>
+
+<p>从文档的描述看到，sync.Map主要是针对两类场景做了优化：写少读多（写只是在初始化创建），以及多个协程变更的Key集不相交。那么具体实现的细节是怎么样的呢？</p>
+
+<p>sync.Map涉及到的数据结构如图所示，简单介绍一下Map结构里几个字段的作用。mu与dirty配合使用，当需要写dirty里的数据时，通过mu来获取锁；read，主要是历史数据，读的时候使用，可以不加锁，更新历史key的数据时，需要用到mu来得到锁；misses，记录在read未获得key数据的次数，当该次数超过dirty的大小时，会将dirty的数据同步到read，同时清空dirty[含义就是：未命中cache，导致需要重读的消耗已经大于把dirty复制到read的消耗]。
+<img src="/img/in-post/sync-map-struct.png" alt="" /></p>
+
+<p>先看写过程，sync.Map.Store接口负责数据更新，和sync.Map.Delete接口负责删除。
+Store函数代码分析</p>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">Map</span><span class="p">)</span> <span class="n">Store</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="k">interface</span><span class="p">{})</span> <span class="p">{</span>
+	<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">:=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">];</span> <span class="n">ok</span> <span class="o">&amp;&amp;</span> <span class="n">e</span><span class="o">.</span><span class="n">tryStore</span><span class="p">(</span><span class="o">&amp;</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+
+	<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+	<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">];</span> <span class="n">ok</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">unexpungeLocked</span><span class="p">()</span> <span class="p">{</span>
+			<span class="c">// The entry was previously expunged, which implies that there is a</span>
+			<span class="c">// non-nil dirty map and this entry is not in it.</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">dirty</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
+		<span class="p">}</span>
+		<span class="n">e</span><span class="o">.</span><span class="n">storeLocked</span><span class="p">(</span><span class="o">&amp;</span><span class="n">value</span><span class="p">)</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">m</span><span class="o">.</span><span class="n">dirty</span><span class="p">[</span><span class="n">key</span><span class="p">];</span> <span class="n">ok</span> <span class="p">{</span>
+		<span class="n">e</span><span class="o">.</span><span class="n">storeLocked</span><span class="p">(</span><span class="o">&amp;</span><span class="n">value</span><span class="p">)</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="o">!</span><span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+			<span class="c">// We're adding the first new key to the dirty map.</span>
+			<span class="c">// Make sure it is allocated and mark the read-only map as incomplete.</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">dirtyLocked</span><span class="p">()</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Store</span><span class="p">(</span><span class="n">readOnly</span><span class="p">{</span><span class="n">m</span><span class="o">:</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">amended</span><span class="o">:</span> <span class="no">true</span><span class="p">})</span>
+		<span class="p">}</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">dirty</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">newEntry</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Unlock</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<ol>
+  <li>加载<em>read</em>，判断key是否在read里，如果在read里，尝试写入，成功则结束（成功条件：key对应的value不是已删除，更新时，通过多次compare and swap保证原子性），否则转2；</li>
+  <li>如果key不在read里或者key对应的value已删除，通过mu获取锁，重新加载<em>read</em>，重新判断key是否在read里（有可能在等待锁过程中，有其它数据更新），如果存在，判断value是否已删除过，若value已删除过，则在<em>dirty</em>增加key-value关系对；更新value新的值；若key不在read里，转3；</li>
+  <li>判断key是否在dirty里，如果存在，更新value新的值；否则转4；</li>
+  <li>如果<em>read</em>未修改过，创建dirty（分配内存，copy数据，<strong>value为nil的key是处于被删除状态，不会被copy</strong>），并更新read的状态为“被修改过”，在<em>dirty</em>增加key-value关系对；</li>
+  <li>释放mu锁；</li>
+</ol>
+
+<p>Delete函数代码分析</p>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">Map</span><span class="p">)</span> <span class="n">Delete</span><span class="p">(</span><span class="n">key</span> <span class="k">interface</span><span class="p">{})</span> <span class="p">{</span>
+	<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">:=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+	<span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+	<span class="k">if</span> <span class="o">!</span><span class="n">ok</span> <span class="o">&amp;&amp;</span> <span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+		<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+		<span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+		<span class="k">if</span> <span class="o">!</span><span class="n">ok</span> <span class="o">&amp;&amp;</span> <span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+			<span class="nb">delete</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">dirty</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Unlock</span><span class="p">()</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="n">ok</span> <span class="p">{</span>
+		<span class="n">e</span><span class="o">.</span><span class="nb">delete</span><span class="p">()</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<ol>
+  <li>加载<em>read</em>，如果key已存在，直接删除，结束；否则转2；</li>
+  <li>如果key不存在，并且read被修改过，通过mu获取锁，再重新加载<em>read</em>，再重新判断key是否在read里（有可能在最近一次修改过），如果key还是不存在并且read还是处于“被修改过”的状态，从<em>dirty</em>里删除key；释放锁；</li>
+  <li>如果在是2里查到key是存在的，则直接删除，结束；</li>
+</ol>
+
+<p>再看读过程，sync.Map.Load接口负责读取数据，sync.Map.Range接口负责遍历数据集
+Load函数代码分析</p>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">Map</span><span class="p">)</span> <span class="n">Load</span><span class="p">(</span><span class="n">key</span> <span class="k">interface</span><span class="p">{})</span> <span class="p">(</span><span class="n">value</span> <span class="k">interface</span><span class="p">{},</span> <span class="n">ok</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">:=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+	<span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+	<span class="k">if</span> <span class="o">!</span><span class="n">ok</span> <span class="o">&amp;&amp;</span> <span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+		<span class="c">// Avoid reporting a spurious miss if m.dirty got promoted while we were</span>
+		<span class="c">// blocked on m.mu. (If further loads of the same key will not miss, it's</span>
+		<span class="c">// not worth copying the dirty map for this key.)</span>
+		<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+		<span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+		<span class="k">if</span> <span class="o">!</span><span class="n">ok</span> <span class="o">&amp;&amp;</span> <span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+			<span class="n">e</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">dirty</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+			<span class="c">// Regardless of whether the entry was present, record a miss: this key</span>
+			<span class="c">// will take the slow path until the dirty map is promoted to the read</span>
+			<span class="c">// map.</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">missLocked</span><span class="p">()</span>
+		<span class="p">}</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Unlock</span><span class="p">()</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="o">!</span><span class="n">ok</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="no">nil</span><span class="p">,</span> <span class="no">false</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<ol>
+  <li>加载<em>read</em>，判断key是否存在read里，如果不存在并且read处于“被修改”状态，申请mu锁；重新加载<em>read</em>，如果read还是没有key并且处理“被修改”
+状态，从<em>dirty</em>里获取，释放锁；通过<em>missLocked</em>进行一次读取统计；释放锁；</li>
+  <li>如果read里没有Key, 并且read没有”被修改”的状态，则直接返回(nil, false)</li>
+  <li>key存在，返回对应的value(此时，也有可能value为nil)；</li>
+</ol>
+
+<p>Range函数代码分析</p>
+<div class="language-golang highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span><span class="n">Map</span><span class="p">)</span> <span class="n">Range</span><span class="p">(</span><span class="n">f</span> <span class="k">func</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="k">interface</span><span class="p">{})</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c">// We need to be able to iterate over all of the keys that were already</span>
+	<span class="c">// present at the start of the call to Range.</span>
+	<span class="c">// If read.amended is false, then read.m satisfies that property without</span>
+	<span class="c">// requiring us to hold m.mu for a long time.</span>
+	<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">:=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+		<span class="c">// m.dirty contains keys not in read.m. Fortunately, Range is already O(N)</span>
+		<span class="c">// (assuming the caller does not break out early), so a call to Range</span>
+		<span class="c">// amortizes an entire copy of the map: we can promote the dirty copy</span>
+		<span class="c">// immediately!</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+		<span class="n">read</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span><span class="o">.</span><span class="p">(</span><span class="n">readOnly</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">amended</span> <span class="p">{</span>
+			<span class="n">read</span> <span class="o">=</span> <span class="n">readOnly</span><span class="p">{</span><span class="n">m</span><span class="o">:</span> <span class="n">m</span><span class="o">.</span><span class="n">dirty</span><span class="p">}</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">Store</span><span class="p">(</span><span class="n">read</span><span class="p">)</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">dirty</span> <span class="o">=</span> <span class="no">nil</span>
+			<span class="n">m</span><span class="o">.</span><span class="n">misses</span> <span class="o">=</span> <span class="m">0</span>
+		<span class="p">}</span>
+		<span class="n">m</span><span class="o">.</span><span class="n">mu</span><span class="o">.</span><span class="n">Unlock</span><span class="p">()</span>
+	<span class="p">}</span>
+
+	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">e</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">read</span><span class="o">.</span><span class="n">m</span> <span class="p">{</span>
+		<span class="n">v</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">e</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+		<span class="k">if</span> <span class="o">!</span><span class="n">ok</span> <span class="p">{</span>
+			<span class="k">continue</span>
+		<span class="p">}</span>
+		<span class="k">if</span> <span class="o">!</span><span class="n">f</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">break</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<ol>
+  <li>加载<em>read</em>，如果read处于”被修改”状态，这里，直接做一次从dirty到read的替换，更新read，并将dirty置为nil, miss次数重置为0；释放锁；</li>
+  <li>从<em>read</em>里循环遍历key-value;</li>
+</ol>
+
+<p>总结：<em>read</em>可以当作一个静态数据集，支持不加锁，快速的读取；<em>dirty</em>包括<em>read</em>里非nil的数据集和新增的数据集；当访问<em>dirty</em>里的key次数大于<em>dirty</em>大小时，会将<em>dirty</em>里的数据copy到<em>read</em>，减少性能消耗（因为能在<em>read</em>访问到key时，是可以不加锁操作。而访问<em>dirty</em>或者key不在read时[read被修改过]，需要加锁来保证数据一致性）。再回头看看sync.Map的适用场景：</p>
+<blockquote>
+  <p>（1）对于一些Key,关联的内容实体是只写一次，但有大量的读，类似，使用缓存时只有Key增长</p>
+</blockquote>
+
+<p>大量的读可以在read里获取到，基本可以不加锁，对比使用单独的mutex/rwmutex要高效得多。少量的写并不影响，只有在访问次数达到一定量后，才会做一次迁移；</p>
+<blockquote>
+  <p>（2）多个并发协议读、写、修改的Keys集合是不相交的</p>
+</blockquote>
+
+<p>同样的原因，由于keys不相交，大部分的操作可以在read实现不加锁处理，比使用单独的全局锁要高效。新增或者key在dirty时，无法避免全局锁。</p>
+
+<p>P.S. 写这篇文章的时候，没有在网上google相关的资料，然后上传到公众号时，为了找个封面图，发现有人发过很详细的解读，图文并茂，这里附上链接：<a href="http://www.sreguide.com/go/sync_map.html">sync_map</a></p>
+
+
+                <hr>
+
+                
+
+
+                <ul class="pager">
+                    
+                    
+                </ul>
+
+
+                
+
+                
+
+            </div>
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+        				
+                            
+        				
+        			</div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+                    
+                        <li><a href="http://huangxuan.me">Hux Blog</a></li>
+                    
+                        <li><a href="#">Foo</a></li>
+                    
+                        <li><a href="#">Bar</a></li>
+                    
+                        <li><a href="#">Example Friends</a></li>
+                    
+                        <li><a href="#">It helps SEO</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("http://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
+
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    <li>
+                        <a target="_blank" href="https://www.zhihu.com/people/xiao-hong-5">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa  fa-stack-1x fa-inverse">知</i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a target="_blank" href="http://weibo.com/heimao86">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+
+
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/kevinlmll">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Kevinlmll Blog 2020
+                    <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> |
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="91px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=huxpro&repo=huxpro.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("http://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>
