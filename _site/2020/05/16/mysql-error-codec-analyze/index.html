@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="记录工作、学习中遇到的各种知识">
+    <meta name="keyword"  content="Golang, MySQL, redis, Linux, TCP/IP">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>MySQL一次数据拉取乱码的过程分析 - 初除一夕的博客 | Kevinlmll Blog</title>
+
+    <link rel="canonical" href="http://localhost:4000/2020/05/16/mysql-error-codec-analyze/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css">
+
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="http://cdn.staticfile.org/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Kevinlmll Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/post-bg-2015.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        background-image: url('/img/post-bg-2015.jpg')
+    }
+</style>
+<header class="intro-header" >
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#mysql" title="mysql">mysql</a>
+                        
+                    </div>
+                    <h1>MySQL一次数据拉取乱码的过程分析</h1>
+                    
+                    
+                    <h2 class="subheading">"哦，又见乱码。"</h2>
+                    
+                    <span class="meta">Posted by kevinlmll on May 16, 2020</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<h4 id="背景">背景</h4>
+<p>周二（2019.11.19）时，业务上反馈，从xx的接口拉取数据会少量出现乱码，而且明确是一个emoji表情（🐠）有问题。</p>
+
+<h4 id="过程">过程</h4>
+<p>底层数据是用DB存储的，托管在公司的MySQL集群上。因此，第一时间想到的有两个点：</p>
+<ul>
+  <li>数据库表是否用”utf8mb4”作为字符集；</li>
+  <li>连接db里，charset是否指定为”utf8”；</li>
+</ul>
+
+<p>此时，另一个同事贴了建表的DDL语句：</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">create</span> <span class="k">table</span> <span class="nv">`xxxxx`</span> <span class="p">(</span>
+   <span class="p">...</span>
+<span class="p">)</span> <span class="n">engine</span><span class="o">=</span><span class="n">innodb</span> <span class="k">default</span> <span class="n">charset</span><span class="o">=</span><span class="n">utf8mb4</span> <span class="k">comment</span><span class="o">=</span><span class="s1">'xxx'</span>
+</code></pre></div></div>
+<p><img src="/img/in-post/20200516_01_01.png" alt="" />
+明确了数据库表是用”utf8mb4”字符集。
+同时，负责接口的同事也把连接db时的参数贴了出来，确认了连接时使用的字符集是”utf8”。</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>?charset=utf8&amp;parseTime=true&amp;loc=Local
+</code></pre></div></div>
+
+<p>考虑到以住的经验，<strong>当数据库表用”utf8mb4”作为字符集时，连接的charset不能用”utf8”，要用”utf8mb4”或者系统默认（latin1）</strong>。所以当时给了这个处理建议：<strong>调整连接时使用的charset，改为”utf8mb4”</strong>。然而同事在调整了对应的参数后，还是没有生效，新写入数据在读出时还是乱码，因此开启了一段关于MySQL字符集的探索之旅。</p>
+
+<p><strong>剧透</strong>：其实上面提到的，将连接时用的charset改为”utf8mb4”是没问题，真正没有生效的原因是同事使用了DB连接缓存池，调整charset是通过配置下发的方式，只有新建立的连接才能生效，旧的连接不会马上调整，因此整体服务还是用”utf8”读写数据。后来对接口进程进行重启后，新数据读写就不再有乱码了。</p>
+
+<h4 id="踩坑">踩坑</h4>
+<p>在处理过程中，我们是踩了两个坑的</p>
+<ul>
+  <li>数据库表是utf8mb4，连接用的是utf8，为什么写入的数据是乱码；</li>
+  <li>中间分析数据时，我们分别用python/golang拉取数据库里的原始数据，其中python能正常显示’🐠’，而golang却报错；</li>
+</ul>
+
+<p>当时写入数据库的原始数据’🐠’，16进制是</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>\xed\xa0\xbd\xed\xb0\xa0，正常的编码应该是\xf0\x9f\x90\xa0
+</code></pre></div></div>
+<p>用python是可以正常输出
+<img src="/img/in-post/20200516_01_02.png" alt="" /></p>
+
+<h4 id="mysql字符集探索">MySQL字符集探索</h4>
+<p>MySQL对utf8的支持有两类字符集:utf8和utf8mb4，两者的差异在于utf8的maxlen是<strong>3</strong>，而utf8mb4的maxlen是<strong>4</strong>，对于一些特殊的字符，例如emoji表情，需要用utf8mb4字符集才能存储。为了避免混乱，下面用<strong>utf8mb3</strong>代替utf8。</p>
+
+<p>MySQL中字符集的转换受到3个系统变量控制[1]，如下：
+|~ 系统变量 |~ 描述 |
+| — | — |
+| character_set_client | 服务器解码请求时使用的字符集 |
+| character_set_connection | 服务器处理请求时会把请求字符串从<em>character_set_client</em> 转为 <em>character_set_connection</em> |
+| character_set_results | 服务器向客户端返回数据时使用的字符集 |</p>
+
+<p>另外要补充的点是，通过<em>set names encoding</em>的方式，是将以上3者都统一进行设置。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">set</span> <span class="k">names</span> <span class="n">utf8</span>  <span class="o">#</span><span class="err">统一将</span><span class="n">character_set_</span><span class="err">{</span><span class="n">client</span><span class="p">,</span><span class="k">connection</span><span class="p">,</span> <span class="k">result</span><span class="err">}设置为</span><span class="n">utf8</span>
+</code></pre></div></div>
+
+<p>这几个系统变量在客户端请求服务端时的作用体现如下[1]：
+<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p149" alt="52a74fdd4fff1a883aa92fea6be6ab51.png" /></p>
+
+<p>利用上图这个流程，我们分析一下前文提到的乱码是怎么产生的。</p>
+
+<p>| 原数据 | utf8(mb3) hex | utf8mb4 hex |
+| — | — | — |
+| 🐠 | \xed\xa0\xbd\xed\xb0\xa0 | \xf0\x9f\x90\xa0 |</p>
+<ol>
+  <li>操作系统默认的字符集一般是utf8（注意，这个是通用的utf8，不是MySQL里面的utf8），这时传输的数据是”<strong>\xf0\x9f\x90\xa0</strong>“；</li>
+  <li>初始化连接DB时指定charset为utf8(utf8mb3，实际)，由于charset_client和charset_connection一致，所以这一步可以不转换；</li>
+  <li>数据库表创建时指定的charset是utf8mb4，而charset_connection是utf8mb3，两者有差异，所以MySQL会对”<strong>\xf0\x9f\x90\xa0</strong>“做一次转换，变成”<strong>\xed\xa0\xbd\xed\xb0\xa0</strong>“写入数据库表；</li>
+  <li>读取时，由于utf8mb4是utf8(mb3)的超集，因此，MySQL不会进行转换，客户端拿到的数据是”<strong>\xed\xa0\xbd\xed\xb0\xa0</strong>“；</li>
+  <li>客户端无法识别”<strong>\xed\xa0\xbd\xed\xb0\xa0</strong>“，不是有效的utf8编码，展示变成乱码（如果用python的话，可以显示正常）；</li>
+</ol>
+
+<p>那么，当我们把连接时的charset设置为utf8mb4时，也就解决了前面第3步里转换的bug，MySQL判断charset_connection与列的charset一致，不会做转换，数据正确。（问题：设置为latin1为什么也可以？）</p>
+
+<h4 id="pythongolang对utf8的编解码处理">python,golang对utf8的编解码处理</h4>
+<p>前面有提到，用python读取数据库里有问题的utf8数据时，是正常展示的，而且golang等其它方式则会报错，这是为什么呢？带着这个疑问，去翻了python 2.7版本和golang的源代码，如下：
+python版，python放松了3字节utf8的限制，兼容（\xed\xa0\x80-\xed\xbf\xbf) 这段区间的值。
+<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p150" alt="eb0f90827bb66f251aada6629eb02e17.png" />
+<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p151" alt="61b972d33980c6ade95e66ca56f84e7a.png" />
+golang版，golang要求3字节的utf8,最低位的字节是在0x80～0xBF 之间
+<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p152" alt="1151095366c16c5584e9e6a76b7e12ba.png" />
+因此，对于「🐠」被转成3字节的utf8 “<em>\xed\xa0\xbd\xed\xb0\xa0</em>“，python能够完全兼容（代码里注释是可以uncomment if条件里的注释，使之非法），但是golang等其它则会报错。</p>
+
+<h4 id="意料之外">意料之外</h4>
+<p>上面的问题发现在公司的集群DB上，在自己机器的MySQL服务上试了下，结果出乎意料之外，只在设置utf8mb4数据才能正常写入。公司集群MySQL与自己机器上的MySQL差异，这个就无从追查了（T_T）。
+自己机器上的MySQL
+<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p153" alt="afb91665307526930f22f063417a2996.png" />
+公司集群MySQL
+<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p154" alt="30a250e6fa09a3b54ddaa4388ee80d5e.png" /></p>
+
+<h4 id="引用">引用</h4>
+<p>[1] https://juejin.im/book/5bffcbc9f265da614b11b731 MySQL 是怎样运行的：从根儿上理解 MySQL–第4节</p>
+
+
+
+                <hr>
+
+                
+
+
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/2020/05/05/golang-source-code-analyze-of-syncmap/" data-toggle="tooltip" data-placement="top" title="Golang里map和Sync.Map的不同">&larr; Previous Post</a>
+                    </li>
+                    
+                    
+                </ul>
+
+
+                
+
+                
+
+            </div>
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+        				
+                            
+        				
+                            
+        				
+        			</div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+                    
+                        <li><a href="http://huangxuan.me">Hux Blog</a></li>
+                    
+                        <li><a href="#">Foo</a></li>
+                    
+                        <li><a href="#">Bar</a></li>
+                    
+                        <li><a href="#">Example Friends</a></li>
+                    
+                        <li><a href="#">It helps SEO</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("http://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
+
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    <li>
+                        <a target="_blank" href="https://www.zhihu.com/people/xiao-hong-5">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa  fa-stack-1x fa-inverse">知</i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a target="_blank" href="http://weibo.com/heimao86">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+
+
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/kevinlmll">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Kevinlmll Blog 2020
+                    <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> |
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="91px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=huxpro&repo=huxpro.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("http://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>

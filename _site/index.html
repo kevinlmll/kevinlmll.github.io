@@ -154,6 +154,37 @@
             ">
     			
 <div class="post-preview">
+    <a href="/2020/05/16/mysql-error-codec-analyze/">
+        <h2 class="post-title">
+            MySQL一次数据拉取乱码的过程分析
+        </h2>
+        
+        <h3 class="post-subtitle">
+            "哦，又见乱码。"
+        </h3>
+        
+        <div class="post-content-preview">
+            背景
+周二（2019.11.19）时，业务上反馈，从xx的接口拉取数据会少量出现乱码，而且明确是一个emoji表情（🐠）有问题。
+
+过程
+底层数据是用DB存储的，托管在公司的MySQL集群上。因此，第一时间想到的有两个点：
+
+  数据库表是否用”utf8mb4”作为字符集；
+  连接db里，charset是否指定为”utf8”；
+
+
+此时，另一个同事贴了建表的DDL语句：
+create ta...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by kevinlmll on May 16, 2020
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
     <a href="/2020/05/05/golang-source-code-analyze-of-syncmap/">
         <h2 class="post-title">
             Golang里map和Sync.Map的不同
@@ -196,6 +227,8 @@
                     <hr class="hidden-sm hidden-xs">
                     <h5><a href="/tags/">FEATURED TAGS</a></h5>
                     <div class="tags">
+                        
+                            
                         
                             
                         
