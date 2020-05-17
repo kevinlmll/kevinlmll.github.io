@@ -1,4 +1,4 @@
-I" <h4 id="背景">背景</h4>
+I"z <h4 id="背景">背景</h4>
 <p>周二（2019.11.19）时，业务上反馈，从xx的接口拉取数据会少量出现乱码，而且明确是一个emoji表情（🐠）有问题。</p>
 
 <h4 id="过程">过程</h4>
@@ -39,19 +39,37 @@
 <h4 id="mysql字符集探索">MySQL字符集探索</h4>
 <p>MySQL对utf8的支持有两类字符集:utf8和utf8mb4，两者的差异在于utf8的maxlen是<strong>3</strong>，而utf8mb4的maxlen是<strong>4</strong>，对于一些特殊的字符，例如emoji表情，需要用utf8mb4字符集才能存储。为了避免混乱，下面用<strong>utf8mb3</strong>代替utf8。</p>
 
-<p>MySQL中字符集的转换受到3个系统变量控制[1]，如下：
-|~ 系统变量 |~ 描述 |
-| — | — |
-| character_set_client | 服务器解码请求时使用的字符集 |
-| character_set_connection | 服务器处理请求时会把请求字符串从<em>character_set_client</em> 转为 <em>character_set_connection</em> |
-| character_set_results | 服务器向客户端返回数据时使用的字符集 |</p>
+<p>MySQL中字符集的转换受到3个系统变量控制[1]，如下：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>系统变量</th>
+      <th>描述</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>character_set_client</td>
+      <td>服务器解码请求时使用的字符集</td>
+    </tr>
+    <tr>
+      <td>character_set_connection</td>
+      <td>服务器处理请求时会把请求字符串从<em>character_set_client</em> 转为 <em>character_set_connection</em></td>
+    </tr>
+    <tr>
+      <td>character_set_results</td>
+      <td>服务器向客户端返回数据时使用的字符集</td>
+    </tr>
+  </tbody>
+</table>
 
 <p>另外要补充的点是，通过<em>set names encoding</em>的方式，是将以上3者都统一进行设置。</p>
-<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">set</span> <span class="k">names</span> <span class="n">utf8</span>  <span class="o">#</span><span class="err">统一将</span><span class="n">character_set_</span><span class="err">{</span><span class="n">client</span><span class="p">,</span><span class="k">connection</span><span class="p">,</span> <span class="k">result</span><span class="err">}设置为</span><span class="n">utf8</span>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">set</span> <span class="k">names</span> <span class="n">utf8</span>  <span class="o">//</span> <span class="err">统一将</span><span class="n">character_set_</span><span class="err">{</span><span class="n">client</span><span class="p">,</span><span class="k">connection</span><span class="p">,</span> <span class="k">result</span><span class="err">}设置为</span><span class="n">utf8</span>
 </code></pre></div></div>
 
 <p>这几个系统变量在客户端请求服务端时的作用体现如下[1]：
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p149" alt="52a74fdd4fff1a883aa92fea6be6ab51.png" /></p>
+<img src="" alt="" /></p>
 
 <p>利用上图这个流程，我们分析一下前文提到的乱码是怎么产生的。</p>
 

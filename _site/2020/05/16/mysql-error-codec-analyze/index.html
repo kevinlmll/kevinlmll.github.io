@@ -207,25 +207,57 @@
 <h4 id="mysql字符集探索">MySQL字符集探索</h4>
 <p>MySQL对utf8的支持有两类字符集:utf8和utf8mb4，两者的差异在于utf8的maxlen是<strong>3</strong>，而utf8mb4的maxlen是<strong>4</strong>，对于一些特殊的字符，例如emoji表情，需要用utf8mb4字符集才能存储。为了避免混乱，下面用<strong>utf8mb3</strong>代替utf8。</p>
 
-<p>MySQL中字符集的转换受到3个系统变量控制[1]，如下：
-|~ 系统变量 |~ 描述 |
-| — | — |
-| character_set_client | 服务器解码请求时使用的字符集 |
-| character_set_connection | 服务器处理请求时会把请求字符串从<em>character_set_client</em> 转为 <em>character_set_connection</em> |
-| character_set_results | 服务器向客户端返回数据时使用的字符集 |</p>
+<p>MySQL中字符集的转换受到3个系统变量控制[1]，如下：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>系统变量</th>
+      <th>描述</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>character_set_client</td>
+      <td>服务器解码请求时使用的字符集</td>
+    </tr>
+    <tr>
+      <td>character_set_connection</td>
+      <td>服务器处理请求时会把请求字符串从<em>character_set_client</em> 转为 <em>character_set_connection</em></td>
+    </tr>
+    <tr>
+      <td>character_set_results</td>
+      <td>服务器向客户端返回数据时使用的字符集</td>
+    </tr>
+  </tbody>
+</table>
 
 <p>另外要补充的点是，通过<em>set names encoding</em>的方式，是将以上3者都统一进行设置。</p>
-<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">set</span> <span class="k">names</span> <span class="n">utf8</span>  <span class="o">#</span><span class="err">统一将</span><span class="n">character_set_</span><span class="err">{</span><span class="n">client</span><span class="p">,</span><span class="k">connection</span><span class="p">,</span> <span class="k">result</span><span class="err">}设置为</span><span class="n">utf8</span>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">set</span> <span class="k">names</span> <span class="n">utf8</span>  <span class="o">//</span> <span class="err">统一将</span><span class="n">character_set_</span><span class="err">{</span><span class="n">client</span><span class="p">,</span><span class="k">connection</span><span class="p">,</span> <span class="k">result</span><span class="err">}设置为</span><span class="n">utf8</span>
 </code></pre></div></div>
 
 <p>这几个系统变量在客户端请求服务端时的作用体现如下[1]：
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p149" alt="52a74fdd4fff1a883aa92fea6be6ab51.png" /></p>
+<img src="/img/in-post/20200516_01_03.png" alt="" /></p>
 
 <p>利用上图这个流程，我们分析一下前文提到的乱码是怎么产生的。</p>
 
-<p>| 原数据 | utf8(mb3) hex | utf8mb4 hex |
-| — | — | — |
-| 🐠 | \xed\xa0\xbd\xed\xb0\xa0 | \xf0\x9f\x90\xa0 |</p>
+<table>
+  <thead>
+    <tr>
+      <th>原数据</th>
+      <th>utf8(mb3) hex</th>
+      <th>utf8mb4 hex</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>🐠</td>
+      <td>\xed\xa0\xbd\xed\xb0\xa0</td>
+      <td>\xf0\x9f\x90\xa0</td>
+    </tr>
+  </tbody>
+</table>
+
 <ol>
   <li>操作系统默认的字符集一般是utf8（注意，这个是通用的utf8，不是MySQL里面的utf8），这时传输的数据是”<strong>\xf0\x9f\x90\xa0</strong>“；</li>
   <li>初始化连接DB时指定charset为utf8(utf8mb3，实际)，由于charset_client和charset_connection一致，所以这一步可以不转换；</li>
@@ -239,18 +271,18 @@
 <h4 id="pythongolang对utf8的编解码处理">python,golang对utf8的编解码处理</h4>
 <p>前面有提到，用python读取数据库里有问题的utf8数据时，是正常展示的，而且golang等其它方式则会报错，这是为什么呢？带着这个疑问，去翻了python 2.7版本和golang的源代码，如下：
 python版，python放松了3字节utf8的限制，兼容（\xed\xa0\x80-\xed\xbf\xbf) 这段区间的值。
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p150" alt="eb0f90827bb66f251aada6629eb02e17.png" />
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p151" alt="61b972d33980c6ade95e66ca56f84e7a.png" />
+<img src="/img/in-post/20200516_01_04.png" alt="" />
+<img src="/img/in-post/20200516_01_05.png" alt="" />
 golang版，golang要求3字节的utf8,最低位的字节是在0x80～0xBF 之间
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p152" alt="1151095366c16c5584e9e6a76b7e12ba.png" />
+<img src="/img/in-post/20200516_01_06.png" alt="" />
 因此，对于「🐠」被转成3字节的utf8 “<em>\xed\xa0\xbd\xed\xb0\xa0</em>“，python能够完全兼容（代码里注释是可以uncomment if条件里的注释，使之非法），但是golang等其它则会报错。</p>
 
 <h4 id="意料之外">意料之外</h4>
 <p>上面的问题发现在公司的集群DB上，在自己机器的MySQL服务上试了下，结果出乎意料之外，只在设置utf8mb4数据才能正常写入。公司集群MySQL与自己机器上的MySQL差异，这个就无从追查了（T_T）。
 自己机器上的MySQL
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p153" alt="afb91665307526930f22f063417a2996.png" />
+<img src="/img/in-post/20200516_01_07.png" alt="" />
 公司集群MySQL
-<img src="evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p154" alt="30a250e6fa09a3b54ddaa4388ee80d5e.png" /></p>
+<img src="/img/in-post/20200516_01_08.png" alt="" /></p>
 
 <h4 id="引用">引用</h4>
 <p>[1] https://juejin.im/book/5bffcbc9f265da614b11b731 MySQL 是怎样运行的：从根儿上理解 MySQL–第4节</p>
@@ -490,9 +522,38 @@ golang版，golang要求3字节的utf8,最低位的字节是在0x80～0xBF 之�
 
 <!-- Google Analytics -->
 
+<script>
+    // dynamic User by Hux
+    var _gaId = 'UA-166903693-1';
+    var _gaDomain = 'auto';
+
+    // Originial
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', _gaId, _gaDomain);
+    ga('send', 'pageview');
+</script>
+
 
 
 <!-- Baidu Tongji -->
+
+<script>
+    // dynamic User by Hux
+    var _baId = '0195a0c2283d2dc7caa269c4dff64693';
+
+    // Originial
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?" + _baId;
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+</script>
 
 
 

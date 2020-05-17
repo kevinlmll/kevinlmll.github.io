@@ -5,9 +5,9 @@
     <description>记录工作、学习中遇到的各种知识</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Sun, 17 May 2020 04:19:38 +0000</pubDate>
-    <lastBuildDate>Sun, 17 May 2020 04:19:38 +0000</lastBuildDate>
-    <generator>Jekyll v4.0.0</generator>
+    <pubDate>Sun, 17 May 2020 05:18:52 +0000</pubDate>
+    <lastBuildDate>Sun, 17 May 2020 05:18:52 +0000</lastBuildDate>
+    <generator>Jekyll v4.0.1</generator>
     
       <item>
         <title>MySQL一次数据拉取乱码的过程分析</title>
@@ -52,25 +52,57 @@
 &lt;h4 id=&quot;mysql字符集探索&quot;&gt;MySQL字符集探索&lt;/h4&gt;
 &lt;p&gt;MySQL对utf8的支持有两类字符集:utf8和utf8mb4，两者的差异在于utf8的maxlen是&lt;strong&gt;3&lt;/strong&gt;，而utf8mb4的maxlen是&lt;strong&gt;4&lt;/strong&gt;，对于一些特殊的字符，例如emoji表情，需要用utf8mb4字符集才能存储。为了避免混乱，下面用&lt;strong&gt;utf8mb3&lt;/strong&gt;代替utf8。&lt;/p&gt;
 
-&lt;p&gt;MySQL中字符集的转换受到3个系统变量控制[1]，如下：
-|~ 系统变量 |~ 描述 |
-| — | — |
-| character_set_client | 服务器解码请求时使用的字符集 |
-| character_set_connection | 服务器处理请求时会把请求字符串从&lt;em&gt;character_set_client&lt;/em&gt; 转为 &lt;em&gt;character_set_connection&lt;/em&gt; |
-| character_set_results | 服务器向客户端返回数据时使用的字符集 |&lt;/p&gt;
+&lt;p&gt;MySQL中字符集的转换受到3个系统变量控制[1]，如下：&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;系统变量&lt;/th&gt;
+      &lt;th&gt;描述&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;character_set_client&lt;/td&gt;
+      &lt;td&gt;服务器解码请求时使用的字符集&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;character_set_connection&lt;/td&gt;
+      &lt;td&gt;服务器处理请求时会把请求字符串从&lt;em&gt;character_set_client&lt;/em&gt; 转为 &lt;em&gt;character_set_connection&lt;/em&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;character_set_results&lt;/td&gt;
+      &lt;td&gt;服务器向客户端返回数据时使用的字符集&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
 
 &lt;p&gt;另外要补充的点是，通过&lt;em&gt;set names encoding&lt;/em&gt;的方式，是将以上3者都统一进行设置。&lt;/p&gt;
-&lt;div class=&quot;language-sql highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;names&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;utf8&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;统一将&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;character_set_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;connection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}设置为&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;utf8&lt;/span&gt;
+&lt;div class=&quot;language-sql highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;names&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;utf8&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;//&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;统一将&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;character_set_&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;connection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}设置为&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;utf8&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;这几个系统变量在客户端请求服务端时的作用体现如下[1]：
-&lt;img src=&quot;evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p149&quot; alt=&quot;52a74fdd4fff1a883aa92fea6be6ab51.png&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/img/in-post/20200516_01_03.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;利用上图这个流程，我们分析一下前文提到的乱码是怎么产生的。&lt;/p&gt;
 
-&lt;p&gt;| 原数据 | utf8(mb3) hex | utf8mb4 hex |
-| — | — | — |
-| 🐠 | \xed\xa0\xbd\xed\xb0\xa0 | \xf0\x9f\x90\xa0 |&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;原数据&lt;/th&gt;
+      &lt;th&gt;utf8(mb3) hex&lt;/th&gt;
+      &lt;th&gt;utf8mb4 hex&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;🐠&lt;/td&gt;
+      &lt;td&gt;\xed\xa0\xbd\xed\xb0\xa0&lt;/td&gt;
+      &lt;td&gt;\xf0\x9f\x90\xa0&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
 &lt;ol&gt;
   &lt;li&gt;操作系统默认的字符集一般是utf8（注意，这个是通用的utf8，不是MySQL里面的utf8），这时传输的数据是”&lt;strong&gt;\xf0\x9f\x90\xa0&lt;/strong&gt;“；&lt;/li&gt;
   &lt;li&gt;初始化连接DB时指定charset为utf8(utf8mb3，实际)，由于charset_client和charset_connection一致，所以这一步可以不转换；&lt;/li&gt;
@@ -84,18 +116,18 @@
 &lt;h4 id=&quot;pythongolang对utf8的编解码处理&quot;&gt;python,golang对utf8的编解码处理&lt;/h4&gt;
 &lt;p&gt;前面有提到，用python读取数据库里有问题的utf8数据时，是正常展示的，而且golang等其它方式则会报错，这是为什么呢？带着这个疑问，去翻了python 2.7版本和golang的源代码，如下：
 python版，python放松了3字节utf8的限制，兼容（\xed\xa0\x80-\xed\xbf\xbf) 这段区间的值。
-&lt;img src=&quot;evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p150&quot; alt=&quot;eb0f90827bb66f251aada6629eb02e17.png&quot; /&gt;
-&lt;img src=&quot;evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p151&quot; alt=&quot;61b972d33980c6ade95e66ca56f84e7a.png&quot; /&gt;
+&lt;img src=&quot;/img/in-post/20200516_01_04.png&quot; alt=&quot;&quot; /&gt;
+&lt;img src=&quot;/img/in-post/20200516_01_05.png&quot; alt=&quot;&quot; /&gt;
 golang版，golang要求3字节的utf8,最低位的字节是在0x80～0xBF 之间
-&lt;img src=&quot;evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p152&quot; alt=&quot;1151095366c16c5584e9e6a76b7e12ba.png&quot; /&gt;
+&lt;img src=&quot;/img/in-post/20200516_01_06.png&quot; alt=&quot;&quot; /&gt;
 因此，对于「🐠」被转成3字节的utf8 “&lt;em&gt;\xed\xa0\xbd\xed\xb0\xa0&lt;/em&gt;“，python能够完全兼容（代码里注释是可以uncomment if条件里的注释，使之非法），但是golang等其它则会报错。&lt;/p&gt;
 
 &lt;h4 id=&quot;意料之外&quot;&gt;意料之外&lt;/h4&gt;
 &lt;p&gt;上面的问题发现在公司的集群DB上，在自己机器的MySQL服务上试了下，结果出乎意料之外，只在设置utf8mb4数据才能正常写入。公司集群MySQL与自己机器上的MySQL差异，这个就无从追查了（T_T）。
 自己机器上的MySQL
-&lt;img src=&quot;evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p153&quot; alt=&quot;afb91665307526930f22f063417a2996.png&quot; /&gt;
+&lt;img src=&quot;/img/in-post/20200516_01_07.png&quot; alt=&quot;&quot; /&gt;
 公司集群MySQL
-&lt;img src=&quot;evernotecid://EC17A7A5-D681-44A9-9B09-540A7DDA8F83/appyinxiangcom/10822562/ENResource/p154&quot; alt=&quot;30a250e6fa09a3b54ddaa4388ee80d5e.png&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/img/in-post/20200516_01_08.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;引用&quot;&gt;引用&lt;/h4&gt;
 &lt;p&gt;[1] https://juejin.im/book/5bffcbc9f265da614b11b731 MySQL 是怎样运行的：从根儿上理解 MySQL–第4节&lt;/p&gt;
